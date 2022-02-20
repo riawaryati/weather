@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
-	"os"
 )
 
 type Weather struct {
@@ -26,7 +25,7 @@ type WeatherInfo struct {
 	WindStatus  string `json:"windStatus"`
 }
 
-var PORT = ":8080"
+var PORT = ":3000"
 
 func main() {
 	http.HandleFunc("/", templateHandler)
@@ -35,7 +34,7 @@ func main() {
 }
 
 func templateHandler(w http.ResponseWriter, r *http.Request) {
-	push(w, "/assets/css/style.scss")
+	// push(w, "/assets/css/style.scss")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	t, err := template.ParseFiles("index.html")
 	if err != nil {
@@ -43,47 +42,38 @@ func templateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	info := updateWeather()
+	// fmt.Println(info)
 
 	t.Execute(w, info)
 }
 
-func push(w http.ResponseWriter, resource string) {
-	pusher, ok := w.(http.Pusher)
-	if ok {
-		if err := pusher.Push(resource, nil); err == nil {
-			return
-		}
-	}
-}
-
 func updateWeather() WeatherInfo {
-	weather := getWeatherJsonData()
-
 	water := rand.Intn(99) + 1
 	wind := rand.Intn(99) + 1
 
-	weather.Status.Water = water
+	weather := Weather{}
+
 	weather.Status.Wind = wind
+	weather.Status.Water = water
 
-	updateFile(*weather, "weathers.json")
+	updateFile(weather, "weathers.json")
 
-	return getStatusInfo(*weather)
+	return getStatusInfo(water, wind)
 }
 
-func getStatusInfo(weater Weather) WeatherInfo {
-
+func getStatusInfo(water int, wind int) WeatherInfo {
 	weatherInfo := WeatherInfo{
-		Water:       weater.Status.Water,
-		WaterStatus: getWaterStatus(weater.Status.Water),
-		Wind:        weater.Status.Wind,
-		WindStatus:  getWindStatus(weater.Status.Wind),
+		Water:       water,
+		WaterStatus: getWaterStatus(water),
+		Wind:        wind,
+		WindStatus:  getWindStatus(wind),
 	}
 
 	return weatherInfo
 }
 
 func getWaterStatus(water int) string {
-	if water < 5 {
+	if water <= 5 {
 		return "Safe"
 	} else if water >= 6 && water <= 8 {
 		return "Warning"
@@ -93,7 +83,7 @@ func getWaterStatus(water int) string {
 }
 
 func getWindStatus(wind int) string {
-	if wind < 6 {
+	if wind <= 6 {
 		return "Safe"
 	} else if wind >= 7 && wind <= 15 {
 		return "Warning"
@@ -102,38 +92,38 @@ func getWindStatus(wind int) string {
 	}
 }
 
-func getWeatherJsonData() *Weather {
-	jsonFile, err := os.Open("weathers.json")
-	if err != nil {
-		panic(err)
-	}
+// func getWeatherJsonData() *Weather {
+// 	jsonFile, err := os.Open("weathers.json")
+// 	if err != nil {
+// 		panic(err)
+// 	}
 
-	defer jsonFile.Close()
+// 	defer jsonFile.Close()
 
-	weather, err := readFile(jsonFile)
-	if err != nil {
-		panic(err)
-	}
+// 	weather, err := readFile(jsonFile)
+// 	if err != nil {
+// 		panic(err)
+// 	}
 
-	// fmt.Println(weathers)
+// 	// fmt.Println(weathers)
 
-	return weather
-}
+// 	return weather
+// }
 
-func readFile(data *os.File) (*Weather, error) {
-	rawData, err := ioutil.ReadAll(data)
-	if err != nil {
-		return nil, err
-	}
+// func readFile(data *os.File) (*Weather, error) {
+// 	rawData, err := ioutil.ReadAll(data)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	var weather *Weather
-	err = json.Unmarshal(rawData, &weather)
-	if err != nil {
-		return nil, err
-	}
+// 	var weather *Weather
+// 	err = json.Unmarshal(rawData, &weather)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return weather, nil
-}
+// 	return weather, nil
+// }
 
 func updateFile(data Weather, filename string) error {
 	value, err := json.Marshal(data)
